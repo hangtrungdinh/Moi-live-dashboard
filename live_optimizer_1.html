@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOI Live Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+:root{
+  --bg:#0f0f0f;--s1:#1a1a1a;--s2:#222;--s3:#2a2a2a;--bd:#333;--bd2:#444;
+  --tx:#fff;--tx2:#a0a0a0;--tx3:#555;
+  --pk:#fe2c55;--pk-d:rgba(254,44,85,.12);--pk-m:rgba(254,44,85,.25);
+  --tl:#25f4ee;--tl-d:rgba(37,244,238,.1);
+  --gn:#2dce89;--gn-d:rgba(45,206,137,.1);
+  --am:#ffbe0b;--am-d:rgba(255,190,11,.1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--tx);font-family:'Inter',sans-serif;font-size:14px;line-height:1.5;min-height:100vh;overflow-x:hidden}
+/* Prevent grid children from overflowing their container */
+.opt-grid>*,.ch-grid>*,.lc-grid>*,.sl-grid>*,.act-grid>*,.gpm-row>*,.sc-row>*{min-width:0}
+
+/* HDR */
+.hdr{background:var(--s1);border-bottom:1px solid var(--bd);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300}
+.hbrand{display:flex;align-items:center;gap:10px}
+.hpulse{width:7px;height:7px;border-radius:50%;background:var(--pk);box-shadow:0 0 10px var(--pk);animation:blink 2s ease-in-out infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.4)}}
+.hname{font-size:16px;font-weight:800;letter-spacing:-.4px}
+.hname span{color:var(--pk)}
+.htag{font-size:11px;color:var(--tx3);margin-left:4px;font-weight:400}
+.hnav{display:flex;gap:2px;background:var(--s3);border-radius:7px;padding:3px}
+.hn{padding:6px 16px;font-size:12px;font-weight:600;color:var(--tx3);cursor:pointer;border-radius:5px;transition:all .15s}
+.hn:hover{color:var(--tx2)}.hn.active{background:var(--pk);color:#fff}
+
+/* MODE BANNER */
+.mbar{padding:9px 28px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mbar.analyze{background:linear-gradient(90deg,rgba(37,244,238,.04),transparent)}
+.mbar.warroom{background:linear-gradient(90deg,rgba(254,44,85,.1),transparent);border-color:rgba(254,44,85,.3)}
+.mb-left{display:flex;align-items:center;gap:10px}
+.mb-badge{padding:3px 8px;border-radius:4px;font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}
+.analyze .mb-badge{background:var(--tl-d);color:var(--tl);border:1px solid rgba(37,244,238,.2)}
+.warroom .mb-badge{background:var(--pk-d);color:var(--pk);border:1px solid var(--pk-m);animation:blink 1.5s ease-in-out infinite}
+.mb-title{font-size:13px;font-weight:700}
+.mb-desc{font-size:11px;color:var(--tx2);margin-top:1px}
+.mb-steps{display:flex;gap:6px}
+.sp{padding:3px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:14px;font-size:10px;font-weight:600;color:var(--tx2);white-space:nowrap}
+.warroom .sp{border-color:var(--pk-m);color:var(--pk)}
+.mbtn-wrap{display:flex;gap:6px}
+.mbtn{padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;border-radius:5px;border:1px solid var(--bd);color:var(--tx3);background:transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.5px;font-family:'Inter',sans-serif}
+.mbtn:hover{border-color:var(--bd2);color:var(--tx2)}
+.mbtn.active{background:var(--pk);color:#fff;border-color:var(--pk)}
+
+/* PANELS */
+.panel{display:none;padding:20px 28px 56px;max-width:1400px;margin:0 auto}
+.panel.active{display:block}
+
+/* OPTIMIZER */
+.opt-grid{display:grid;grid-template-columns:480px 1fr;gap:20px;align-items:start}
+.inp-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;overflow:hidden;position:sticky;top:72px}
+.ic-head{padding:16px 20px 14px;border-bottom:1px solid var(--bd)}
+.ic-lbl{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px}
+.ic-title{font-size:16px;font-weight:800;letter-spacing:-.4px;margin-bottom:3px}
+.ic-sub{font-size:12px;color:var(--tx2);line-height:1.5}
+.formula{background:var(--pk-d);border-left:2px solid var(--pk);margin:10px 16px;padding:8px 12px;border-radius:0 6px 6px 0;font-size:11px;font-weight:600;color:var(--tx2)}
+.formula strong{color:var(--pk);font-size:12px}
+.sess-row{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--bd);margin:0 16px 12px;border-radius:7px;overflow:hidden}
+.sbtn{padding:10px 8px;text-align:center;background:var(--s2);cursor:pointer;transition:all .15s}
+.sbtn:hover{background:var(--s3)}
+.sbtn.active.bau{background:var(--gn);color:#fff}
+.sbtn.active.mega{background:var(--pk);color:#fff}
+.s-lbl{font-size:11px;font-weight:700;display:block;margin-bottom:1px}
+.s-sub{font-size:10px;opacity:.6}
+.inp-body{padding:0 16px 4px}
+.cmp-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.irow{margin-bottom:8px}
+/* 6 fields chính: 3 hàng × 2 cột đều */
+.inp-grid6{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px;margin-bottom:8px;align-items:start}
+.inp-grid6 .irow{margin-bottom:0;display:flex;flex-direction:column;min-width:0}
+.inp-grid6 .ibox{flex:1;width:100%}
+.inp-grid6 .ifld{width:100%;min-width:0}
+.ilbl{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.iname{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx2)}
+.ibch{font-size:10px;color:var(--tx3);font-family:'Inter',monospace}
+.ibox{display:flex;align-items:stretch;background:var(--s2);border:1px solid var(--bd);border-radius:7px;overflow:hidden;transition:border-color .15s}
+.ibox:focus-within{border-color:var(--pk)}
+.ifld{flex:1;min-width:0;padding:8px 6px;background:transparent;border:none;outline:none;font-size:14px;font-weight:500;color:var(--tx);font-family:'Inter',sans-serif;-moz-appearance:textfield}
+.ifld::-webkit-outer-spin-button,.ifld::-webkit-inner-spin-button{-webkit-appearance:none}
+.iunit{padding:8px 8px 8px 0;font-size:10px;font-weight:600;color:var(--tx3);white-space:nowrap;flex-shrink:0}
+.istat{width:3px;flex-shrink:0;transition:background .2s}
+.gobtn{display:block;width:calc(100% - 32px);margin:4px 16px 18px;padding:12px;background:var(--pk);color:#fff;border:none;border-radius:7px;font-family:'Inter',sans-serif;font-size:13px;font-weight:800;cursor:pointer;transition:all .15s}
+.gobtn:hover{background:#e01e47;transform:translateY(-1px)}
+
+/* RESULTS */
+.res{display:none}.res.show{display:block}
+.verdict{border-radius:10px;padding:14px 18px;margin-bottom:14px;border:1px solid}
+.verdict.good{background:var(--gn-d);border-color:rgba(45,206,137,.3)}
+.verdict.warn{background:var(--am-d);border-color:rgba(255,190,11,.3)}
+.verdict.bad{background:var(--pk-d);border-color:var(--pk-m)}
+.vflag{font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.verdict.good .vflag{color:var(--gn)}.verdict.warn .vflag{color:var(--am)}.verdict.bad .vflag{color:var(--pk)}
+.vtitle{font-size:15px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px}
+.vbody{font-size:12px;color:var(--tx2);line-height:1.6}
+
+/* CIR ZONE */
+.cir-zone{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bd);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.cz{padding:10px 12px;background:var(--s1);text-align:center;transition:all .2s}
+.cz.active-zone{background:var(--s2)}
+.cz-lbl{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.cz-range{font-size:12px;font-weight:800;font-family:'Inter',monospace;margin-bottom:2px}
+.cz-action{font-size:10px;color:var(--tx2)}
+.cz.z-good .cz-lbl{color:var(--gn)}.cz.z-warn .cz-lbl{color:var(--am)}.cz.z-bad .cz-lbl{color:var(--pk)}.cz.z-crit .cz-lbl{color:#ff4d4d}
+.cz.active-zone.z-good{background:rgba(45,206,137,.08);border:1px solid rgba(45,206,137,.3)}
+.cz.active-zone.z-warn{background:rgba(255,190,11,.08);border:1px solid rgba(255,190,11,.3)}
+.cz.active-zone.z-bad{background:rgba(254,44,85,.08);border:1px solid rgba(254,44,85,.3)}
+.cz.active-zone.z-crit{background:rgba(255,77,77,.12);border:1px solid rgba(255,77,77,.4)}
+
+/* SIM */
+.sim-box{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+.sim-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.sim-gmv{font-size:38px;font-weight:900;letter-spacing:-2px;line-height:1;transition:all .2s}
+.sim-gmv.pop{color:var(--pk);transform:scale(1.03)}
+.sim-meta{font-size:12px;color:var(--tx2);margin-top:4px}
+.sim-vs{text-align:right}
+.sim-vs-pct{font-size:22px;font-weight:900;letter-spacing:-1px}
+.sim-vs-lbl{font-size:10px;color:var(--tx3);margin-top:2px}
+/* GPM badge */
+.gpm-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.gpm-card{background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:9px 12px}
+.gpm-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:4px}
+.gpm-val{font-size:18px;font-weight:900;letter-spacing:-1px;font-family:'Inter',monospace}
+.gpm-note{font-size:10px;margin-top:2px}
+/* mini bars */
+.mbars{display:flex;align-items:flex-end;gap:4px;height:40px;margin-bottom:14px;background:var(--s2);border-radius:6px;padding:5px 10px;border:1px solid var(--bd)}
+.mbar{flex:1;border-radius:2px 2px 0 0;transition:height .25s,background .25s;min-height:3px;position:relative}
+.mbar-lbl{position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--tx3);white-space:nowrap}
+/* sliders */
+.sl-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sl-row{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px 12px}
+.sl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px}
+.sl-name{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--tx2)}
+.sl-val{font-size:13px;font-weight:800;font-family:'Inter',monospace}
+.sl-val.good{color:var(--gn)}.sl-val.warn{color:var(--am)}.sl-val.bad{color:var(--pk)}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--tx);cursor:pointer;border:2px solid var(--bg);transition:background .15s}
+input[type=range]:hover::-webkit-slider-thumb{background:var(--pk)}
+
+/* SCENARIOS */
+.sc-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.sc{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:11px 13px}
+.sc.hl{border-color:var(--am);background:var(--am-d)}
+.sc-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:7px}
+.sc-val{font-size:19px;font-weight:900;letter-spacing:-1px;margin-bottom:3px}
+.sc-diff{font-size:11px;font-weight:600}
+.sc-diff.up{color:var(--gn)}.sc-diff.flat{color:var(--tx3)}.sc-diff.dn{color:var(--pk)}
+
+/* BOTTLENECK */
+.sec{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--tx3);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--bd)}
+.bn-stack{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.bn{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:11px 13px;display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center}
+.bn.top{border-color:var(--pk);background:var(--pk-d)}
+.bn-n{font-size:18px;font-weight:900;color:var(--bd2)}.bn.top .bn-n{color:var(--pk)}
+.bn-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.bn-desc{font-size:11px;color:var(--tx2);line-height:1.4}
+.bn-ctrl{font-size:10px;color:var(--tx3);margin-top:2px}
+.tag{font-size:11px;font-weight:700;padding:3px 8px;border-radius:5px;white-space:nowrap}
+.tag.bad{color:var(--pk);background:var(--pk-d)}.tag.warn{color:var(--am);background:var(--am-d)}.tag.ok{color:var(--gn);background:var(--gn-d)}
+/* ACTIONS */
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.ac{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:13px;border-top:3px solid}
+.ac.critical{border-top-color:var(--pk)}.ac.warn{border-top-color:var(--am)}.ac.ok{border-top-color:var(--gn)}
+.ac-flag{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
+.ac.critical .ac-flag{color:var(--pk)}.ac.warn .ac-flag{color:var(--am)}.ac.ok .ac-flag{color:var(--gn)}
+.ac-title{font-size:13px;font-weight:700;margin-bottom:5px;letter-spacing:-.2px}
+.ac-body{font-size:12px;color:var(--tx2);line-height:1.65}.ac-body strong{color:var(--tx)}
+
+/* SESSION TAB */
+.kpi-bar{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--bd);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.kc{background:var(--s1);padding:12px 14px}
+.kc-l{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px}
+.kc-v{font-size:22px;font-weight:900;letter-spacing:-1px;line-height:1;margin-bottom:3px}
+.kc-n{font-size:11px;color:var(--tx2)}.kc-n.up{color:var(--gn)}.kc-n.dn{color:var(--pk)}.kc-n.warn{color:var(--am)}
+.tl-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--bd);border-radius:8px;overflow:hidden;margin-bottom:16px}
+.tl{background:var(--s2);padding:10px 13px;cursor:pointer;transition:background .15s}
+.tl:hover{background:var(--s3)}
+.tl-t{font-size:9px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.tl.s1 .tl-t{color:#3b82f6}.tl.s2 .tl-t{color:#8b5cf6}.tl.s3 .tl-t{color:var(--am)}.tl.s4 .tl-t{color:var(--pk)}
+.tl-time{font-size:10px;color:var(--tx3);margin-bottom:4px}
+.tl-gmv{font-size:13px;font-weight:700}
+.ch-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.ch{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:16px}
+.ch-t{font-size:13px;font-weight:700;margin-bottom:2px}
+.ch-s{font-size:11px;color:var(--tx3);margin-bottom:12px}
+.hw{position:relative}.h240{height:220px}
+.cmp{width:100%;border-collapse:collapse}
+.cmp th{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);padding:8px 11px;border-bottom:1px solid var(--bd);text-align:center;background:var(--s2)}
+.cmp th.L{text-align:left}
+.cmp td{padding:8px 11px;border-bottom:1px solid rgba(51,51,51,.6);font-size:12px;text-align:center;font-family:'Inter',monospace}
+.cmp td.L{text-align:left;font-family:'Inter',sans-serif;font-weight:600;font-size:11px;color:var(--tx2)}
+.cmp tr:hover td{background:var(--s2)}
+.up{color:var(--gn);font-weight:700}.dn{color:var(--pk);font-weight:700}
+.evt-col{display:flex;flex-direction:column;gap:6px}
+.ev{background:var(--s1);border:1px solid var(--bd);border-radius:7px;padding:9px 12px;display:flex;gap:12px;align-items:flex-start}
+.ev.hi{border-color:var(--am);background:var(--am-d)}
+.ev-t{font-size:10px;font-weight:700;min-width:36px;padding-top:1px}
+.ev-tx{font-size:12px;color:var(--tx2);line-height:1.55}
+
+/* LEARNING */
+.lc-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.lc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:16px}
+.lc.pin{border-color:var(--pk-m);background:var(--pk-d)}
+.lc-n{font-size:30px;font-weight:900;color:var(--bd);line-height:1;margin-bottom:8px;letter-spacing:-2px}
+.lc.pin .lc-n{color:rgba(254,44,85,.2)}
+.lc-t{font-size:13px;font-weight:800;margin-bottom:6px;letter-spacing:-.3px}
+.lc-b{font-size:12px;color:var(--tx2);line-height:1.65}.lc-b strong{color:var(--tx)}
+.lc-stats{display:flex;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)}
+.ls-l{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);margin-bottom:2px}
+.ls-v{font-size:13px;font-weight:800;font-family:'Inter',monospace}
+
+/* ── 1200px: sidebar stacks ── */
+@media(max-width:1200px){
+  .opt-grid{grid-template-columns:1fr}
+  .inp-card{position:static}
+}
+/* ── 960px: medium tablet ── */
+@media(max-width:960px){
+  .panel{padding:16px}
+  .kpi-bar{grid-template-columns:repeat(3,1fr)}
+  .ch-grid{grid-template-columns:1fr}
+  .lc-grid{grid-template-columns:1fr 1fr}
+  .sc-row{grid-template-columns:repeat(3,1fr)}
+  .gpm-row{grid-template-columns:1fr 1fr}
+  .hdr{gap:8px}
+}
+/* ── 720px: large phone / small tablet ── */
+@media(max-width:720px){
+  .hdr{padding:0 14px;height:52px}
+  .hnav{display:none}
+  .hname{font-size:14px}
+  .htag{display:none}
+  .mbtn-wrap{gap:4px}
+  .mbtn{padding:4px 10px;font-size:10px}
+  .mbar{padding:8px 14px;flex-wrap:wrap;gap:8px}
+  .mb-steps{display:none}
+  .panel{padding:12px}
+  .kpi-bar{grid-template-columns:repeat(3,1fr)}
+  .tl-row{grid-template-columns:1fr 1fr}
+  .ch-grid{grid-template-columns:1fr}
+  .sl-grid{grid-template-columns:1fr 1fr}
+  .act-grid{grid-template-columns:1fr}
+  .sc-row{grid-template-columns:repeat(3,1fr)}
+  .lc-grid{grid-template-columns:1fr}
+  .sim-gmv{font-size:32px}
+  .sim-hdr{flex-direction:column;gap:8px}
+  .sim-vs{text-align:left}
+  .cir-zone{grid-template-columns:repeat(2,1fr)}
+  .cmp th,.cmp td{padding:6px 8px;font-size:11px}
+}
+/* ── 480px: phone ── */
+@media(max-width:480px){
+  .hdr{height:48px}
+  .hname{font-size:13px}
+  .panel{padding:10px}
+  .inp-grid6{grid-template-columns:1fr}
+  .tl-row{grid-template-columns:1fr 1fr}
+  .sl-grid{grid-template-columns:1fr}
+  .sc-row{grid-template-columns:1fr}
+  .gpm-row{grid-template-columns:1fr}
+  .act-grid{grid-template-columns:1fr}
+  .lc-grid{grid-template-columns:1fr}
+  .sim-gmv{font-size:26px}
+  .cir-zone{grid-template-columns:repeat(2,1fr)}
+  .bn{grid-template-columns:22px 1fr auto;gap:8px}
+  .bn-n{font-size:15px}
+  .verdict{padding:12px 14px}
+  .kc-v{font-size:18px}
+  .lc-n{font-size:24px}
+  .cmp th:nth-child(3),.cmp td:nth-child(3),
+  .cmp th:nth-child(5),.cmp td:nth-child(5){display:none}
+  .ic-head{padding:12px 16px 10px}
+  .inp-body{padding:0 12px 4px}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="hbrand">
+    <div class="hpulse"></div>
+    <div class="hname">MOI <span>Live</span> Studio <span class="htag">02.03 Benchmark</span></div>
+  </div>
+  <nav class="hnav">
+    <div class="hn active" onclick="sw('optimizer',this)">Optimizer</div>
+    <div class="hn" onclick="sw('session',this)">Phiên 02.03</div>
+    <div class="hn" onclick="sw('learning',this)">Key Learning</div>
+  </nav>
+  <div class="mbtn-wrap">
+    <button class="mbtn active" onclick="setMode('analyze',this)">Analyze</button>
+    <button class="mbtn" onclick="setMode('warroom',this)">War Room</button>
+  </div>
+</header>
+
+<div class="mbar analyze" id="mbar">
+  <div class="mb-left">
+    <div class="mb-badge" id="mbadge">Analyze Mode</div>
+    <div>
+      <div class="mb-title" id="mtitle">Lập kế hoạch trước phiên — nhập target, mô phỏng kịch bản GMV</div>
+      <div class="mb-desc" id="mdesc">Kéo slider để hỏi ngược: "Cần CTOR bao nhiêu để đạt 1.5B?" · Xác định điểm cần chuẩn bị trước khi live</div>
+    </div>
+  </div>
+  <div class="mb-steps" id="msteps">
+    <div class="sp">① Chọn BAU / Mega</div>
+    <div class="sp">② Nhập target chỉ số</div>
+    <div class="sp">③ Kéo slider mô phỏng</div>
+    <div class="sp">④ Đọc Action Plan</div>
+  </div>
+</div>
+
+<!-- ═══ OPTIMIZER ═══ -->
+<div id="tab-optimizer" class="panel active">
+  <div class="opt-grid">
+    <div class="inp-card">
+      <div class="ic-head">
+        <div class="ic-lbl">Live Performance Optimizer</div>
+        <div class="ic-title">Nhập chỉ số phiên</div>
+        <div class="ic-sub">Bỏ trống = dùng benchmark 02.03. Hỗ trợ BAU và Mega Live.</div>
+      </div>
+      <div class="formula"><strong>GMV = Impressions × ERR × CTR × CTOR × AOV</strong></div>
+      <div class="sess-row">
+        <div class="sbtn bau active" onclick="setSess('bau',this)"><span class="s-lbl">BAU Session</span><span class="s-sub">Thường ngày / không KOL</span></div>
+        <div class="sbtn mega" onclick="setSess('mega',this)"><span class="s-lbl">Mega Live</span><span class="s-sub">Có Celeb / KOL</span></div>
+      </div>
+      <div class="inp-body">
+        <!-- 6 fields chính: 2 hàng × 3 cột đều nhau -->
+        <div class="inp-grid6">
+          <div class="irow"><div class="ilbl"><span class="iname">Impressions</span><span class="ibch" id="b-imp">BAU: 1.09M</span></div><div class="ibox"><input class="ifld" id="i-imp" type="number" placeholder="1.09M" oninput="onInp('imp')"><span class="iunit">lượt</span><div class="istat" id="s-imp"></div></div></div>
+          <div class="irow"><div class="ilbl"><span class="iname">ERR</span><span class="ibch" id="b-err">BAU: 2.9%</span></div><div class="ibox"><input class="ifld" id="i-err" type="number" step="0.1" placeholder="2.9" oninput="onInp('err')"><span class="iunit">%</span><div class="istat" id="s-err"></div></div></div>
+          <div class="irow"><div class="ilbl"><span class="iname">Live CTR</span><span class="ibch" id="b-ctr">BAU: 41%</span></div><div class="ibox"><input class="ifld" id="i-ctr" type="number" step="0.1" placeholder="41" oninput="onInp('ctr')"><span class="iunit">%</span><div class="istat" id="s-ctr"></div></div></div>
+          <div class="irow"><div class="ilbl"><span class="iname">CTOR</span><span class="ibch" id="b-ctor">BAU: 4.1%</span></div><div class="ibox"><input class="ifld" id="i-ctor" type="number" step="0.01" placeholder="4.1" oninput="onInp('ctor')"><span class="iunit">%</span><div class="istat" id="s-ctor"></div></div></div>
+          <div class="irow"><div class="ilbl"><span class="iname">AOV</span><span class="ibch" id="b-aov">BAU: 671K</span></div><div class="ibox"><input class="ifld" id="i-aov" type="number" placeholder="671K" oninput="onInp('aov')"><span class="iunit">VND</span><div class="istat" id="s-aov"></div></div></div>
+          <div class="irow"><div class="ilbl"><span class="iname">Budget</span><span class="ibch">BAU: 30M</span></div><div class="ibox"><input class="ifld" id="i-budget" type="number" placeholder="30M"><span class="iunit">VND</span><div class="istat"></div></div></div>
+        </div>
+        <!-- Views optional: full width -->
+        <div class="irow" style="margin-top:2px"><div class="ilbl"><span class="iname">Views</span><span class="ibch" style="font-size:9px;color:var(--tx3)">Tuỳ chọn — từ TikTok Analytics. Bỏ trống → tự tính Imp × ERR</span></div><div class="ibox"><input class="ifld" id="i-views" type="number" placeholder="Để trống = tự tính"><span class="iunit">người</span></div></div>
+      </div>
+      <button class="gobtn" onclick="go()">Phân tích Bottleneck →</button>
+    </div>
+
+    <div>
+      <div id="empty" style="padding:80px 0;text-align:center;color:var(--tx3)">
+        <div style="font-size:40px;margin-bottom:14px;opacity:.2">←</div>
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">Chưa có dữ liệu</div>
+        <div style="font-size:12px">Nhập chỉ số bên trái và nhấn Phân tích</div>
+      </div>
+      <div class="res" id="res">
+
+        <!-- VERDICT -->
+        <div class="verdict" id="vcard"><div class="vflag" id="vf"></div><div class="vtitle" id="vt"></div><div class="vbody" id="vb"></div></div>
+
+        <!-- CIR ZONE -->
+        <div class="sec">CIR Zone — Trạng thái ngân sách</div>
+        <div class="cir-zone" id="cirzone">
+          <div class="cz z-good" id="cz1"><div class="cz-lbl">Lợi nhuận cao</div><div class="cz-range">&lt; 8%</div><div class="cz-action">Tăng budget ads</div></div>
+          <div class="cz z-warn" id="cz2"><div class="cz-lbl">An toàn</div><div class="cz-range">8–12%</div><div class="cz-action">Duy trì & optimize</div></div>
+          <div class="cz z-bad" id="cz3"><div class="cz-lbl">Cần theo dõi</div><div class="cz-range">12–15%</div><div class="cz-action">Review creative & CTOR</div></div>
+          <div class="cz z-crit" id="cz4"><div class="cz-lbl">Dừng scale</div><div class="cz-range">&gt; 15%</div><div class="cz-action">Cắt budget, fix SKU mix</div></div>
+        </div>
+
+        <!-- SIMULATOR -->
+        <div class="sim-box">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="sec" style="margin:0;border:none;padding:0">GMV Simulator</div>
+            <div style="font-size:10px;color:var(--tx3)">Kéo slider → cập nhật realtime</div>
+          </div>
+          <div class="sim-hdr">
+            <div>
+              <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:6px">Projected GMV</div>
+              <div class="sim-gmv" id="sg">—</div>
+              <div class="sim-meta" id="smeta">—</div>
+            </div>
+            <div class="sim-vs">
+              <div class="sim-vs-pct" id="svspct">—</div>
+              <div class="sim-vs-lbl">vs benchmark</div>
+            </div>
+          </div>
+
+          <!-- GPM CARDS: 3 loại -->
+          <div class="gpm-row">
+            <div class="gpm-card">
+              <div class="gpm-lbl">GPM theo dõi</div>
+              <div class="gpm-val" id="gpm-views">—</div>
+              <div class="gpm-note" id="gpm-views-note" style="color:var(--tx3)">GMV / Views × 1,000 — đo chất lượng bán hàng của host &amp; deal. Cần nhập Views.</div>
+            </div>
+            <div class="gpm-card">
+              <div class="gpm-lbl">GPM hiển thị</div>
+              <div class="gpm-val" id="gpm-imp">—</div>
+              <div class="gpm-note" id="gpm-imp-note" style="color:var(--tx3)">GMV / Impressions × 1,000 — đo hiệu quả phân phối &amp; ads. TikTok dùng để quyết định đề xuất live.</div>
+            </div>
+            <div class="gpm-card">
+              <div class="gpm-lbl">Benchmark 02.03</div>
+              <div class="gpm-val" style="color:var(--tx2)" id="gpm-bench">—</div>
+              <div class="gpm-note" id="gpm-bench-note" style="color:var(--tx3)">—</div>
+            </div>
+          </div>
+
+          <div class="mbars" id="mbars"><div style="font-size:11px;color:var(--tx3);align-self:center;width:100%;text-align:center">Nhập chỉ số để kích hoạt</div></div>
+          <div class="sl-grid" id="sliders"></div>
+
+          <!-- SCENARIOS gộp vào sim -->
+          <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--bd)">
+            <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3);margin-bottom:8px">Kịch bản GMV</div>
+            <div class="sc-row" style="margin-bottom:0">
+              <div class="sc"><div class="sc-lbl">Thực tế hiện tại</div><div class="sc-val" id="sc1" style="color:#a0a0a0">—</div><div class="sc-diff flat" id="sc1d">—</div></div>
+              <div class="sc hl"><div class="sc-lbl">Fix CTOR → bench</div><div class="sc-val" id="sc2" style="color:var(--am)">—</div><div class="sc-diff up" id="sc2d">—</div></div>
+              <div class="sc"><div class="sc-lbl">Fix cả CTOR + AOV</div><div class="sc-val" id="sc3" style="color:var(--gn)">—</div><div class="sc-diff up" id="sc3d">—</div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOTTLENECK -->
+        <div class="sec">Bottleneck Ranking — ưu tiên = Impact × Controllability</div>
+        <div class="bn-stack" id="bnlist"></div>
+
+        <!-- ACTIONS -->
+        <div class="sec">Action Plan</div>
+        <div class="act-grid" id="actgrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SESSION ═══ -->
+<div id="tab-session" class="panel">
+  <div class="sec">Mega Live 02.03 — Tổng kết</div>
+  <div class="kpi-bar">
+    <div class="kc"><div class="kc-l">Total GMV</div><div class="kc-v" style="color:var(--gn)">1.29B</div><div class="kc-n up">↑ 12.7% vs target</div></div>
+    <div class="kc"><div class="kc-l">Ads Spend</div><div class="kc-v" style="color:#3b82f6">131.6M</div><div class="kc-n warn">↑ 19.6% vs plan</div></div>
+    <div class="kc"><div class="kc-l">CIR Tổng</div><div class="kc-v" style="color:var(--am)">10.22%</div><div class="kc-n up">Zone an toàn</div></div>
+    <div class="kc"><div class="kc-l">ERR Peak</div><div class="kc-v" style="color:var(--pk)">12%</div><div class="kc-n">22:05 peak</div></div>
+    <div class="kc"><div class="kc-l">CTOR BAU</div><div class="kc-v" style="color:var(--gn)">4.12%</div><div class="kc-n up">Vượt target</div></div>
+    <div class="kc"><div class="kc-l">Watch GPM BAU</div><div class="kc-v" style="color:var(--tl)">~15K</div><div class="kc-n">VND/1000 views</div></div>
+  </div>
+  <div class="tl-row">
+    <div class="tl s1"><div class="tl-t">Session 1</div><div class="tl-time">10:05 – 13:35</div><div class="tl-gmv" style="color:#3b82f6">168.1M</div></div>
+    <div class="tl s2"><div class="tl-t">Session 2</div><div class="tl-time">14:05 – 16:35</div><div class="tl-gmv" style="color:#8b5cf6">80.3M</div></div>
+    <div class="tl s3"><div class="tl-t">Session 3</div><div class="tl-time">17:05 – 19:35</div><div class="tl-gmv" style="color:var(--am)">108.3M</div></div>
+    <div class="tl s4"><div class="tl-t">Mega Live 🔥</div><div class="tl-time">20:05 – 00:35</div><div class="tl-gmv" style="color:var(--pk)">927.7M</div></div>
+  </div>
+  <div class="ch-grid">
+    <div class="ch"><div class="ch-t">GMV + ERR% theo 30 phút</div><div class="ch-s">Bar = GMV · Đường vàng = ERR%</div><div class="hw h240"><canvas id="cGMV"></canvas></div></div>
+    <div class="ch"><div class="ch-t">Watch GPM theo 30 phút</div><div class="ch-s">GPM = GMV/Views × 1000 · Xanh = BAU · Đỏ = Mega · Đứt = BAU avg 15K</div><div class="hw h240"><canvas id="cGPM"></canvas></div></div>
+  </div>
+  <div class="ch" style="margin-bottom:14px">
+    <div class="ch-t">CTOR & CTR theo giờ</div><div class="ch-s" style="margin-bottom:12px">Xanh = CTOR · Vàng đứt = CTR · Đỏ đứt = target 4.1%</div>
+    <div class="hw h240"><canvas id="cCTOR"></canvas></div>
+  </div>
+  <div class="ch" style="margin-bottom:14px">
+    <div class="ch-t">BAU vs Mega — So sánh</div><div class="ch-s" style="margin-bottom:12px">Mega đổi CTOR lấy ERR — GPM Mega (~5K) thấp hơn BAU (~15K) là bình thường</div>
+    <div class="cmp-wrap">
+      <table class="cmp">
+        <thead><tr><th class="L">Metric</th><th>BAU Actual</th><th>BAU Target</th><th>Mega Actual</th><th>Mega Target</th><th>Δ</th></tr></thead>
+        <tbody>
+          <tr><td class="L">CTOR</td><td class="up">4.12%</td><td>4.05%</td><td class="dn">2.40%</td><td>4.12%</td><td style="color:var(--pk);font-family:'Inter';font-size:11px">−42%</td></tr>
+          <tr><td class="L">ERR</td><td>2.9–3.5%</td><td>3.2%</td><td class="up">7.95–12%</td><td>8.82%</td><td style="color:var(--gn);font-family:'Inter';font-size:11px">+3×</td></tr>
+          <tr><td class="L">Watch GPM</td><td class="up">~15,000đ</td><td>—</td><td>~5,000đ</td><td>—</td><td style="color:var(--am);font-family:'Inter';font-size:11px">Mega normal</td></tr>
+          <tr><td class="L">AOV</td><td class="up">671K</td><td>500K</td><td>556K</td><td>570K</td><td style="color:var(--am);font-family:'Inter';font-size:11px">Mega thấp hơn</td></tr>
+          <tr><td class="L">GMV</td><td class="up">360M</td><td>91M</td><td class="up">928M</td><td>892M</td><td style="color:var(--gn);font-family:'Inter';font-size:11px">Cả 2 vượt</td></tr>
+          <tr><td class="L">CIR</td><td class="up">8.35%</td><td>21.99%</td><td style="color:var(--am)">10.92%</td><td>10.21%</td><td style="color:var(--am);font-family:'Inter';font-size:11px">An toàn</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="sec">Diễn biến theo giờ</div>
+  <div class="evt-col" id="evts"></div>
+</div>
+
+<!-- ═══ LEARNING ═══ -->
+<div id="tab-learning" class="panel">
+  <div class="sec">Key Learning từ 02.03 → Mega Live tiếp theo</div>
+  <div class="lc-grid">
+    <div class="lc pin"><div class="lc-n">01</div><div class="lc-t">CTOR Mega là bottleneck số 1</div><div class="lc-b">CTOR giảm từ <strong>4.12% → 2.40%</strong> trong Mega (−42%). GPM tương ứng giảm từ ~15K xuống ~5K — xác nhận traffic Celeb intent thấp. Nếu giữ CTOR ≥ 3.5%, GMV có thể lên <strong>1.4–1.5B</strong>.<div class="lc-stats"><div><div class="ls-l">CTOR thực</div><div class="ls-v" style="color:var(--pk)">2.40%</div></div><div><div class="ls-l">GPM Mega</div><div class="ls-v" style="color:var(--pk)">~5,000đ</div></div><div><div class="ls-l">Upside</div><div class="ls-v" style="color:var(--gn)">+150–200M</div></div></div></div></div>
+    <div class="lc"><div class="lc-n">02</div><div class="lc-t">Double-Host Architecture</div><div class="lc-b">Celeb kéo ERR · Host chuyên nghiệp chốt ngay khi ERR spike. Tại 22:05 ERR đạt 12% nhưng GPM chỉ 4,072đ — 10 phút vàng bị bỏ lỡ. Nếu CTOR lúc đó đạt 4%, GPM sẽ là ~7,900đ.<div class="lc-stats"><div><div class="ls-l">ERR peak</div><div class="ls-v" style="color:var(--gn)">12% (22:05)</div></div><div><div class="ls-l">GPM lúc đó</div><div class="ls-v" style="color:var(--pk)">4,072đ</div></div></div></div></div>
+    <div class="lc"><div class="lc-n">03</div><div class="lc-t">Hero SKU gánh 50% GMV</div><div class="lc-b"><strong>Nước hoa Trà Hoa Viên × Minh Long</strong> = 648M (~50% GMV), CTR 4.9%, AOV ~970K. GPM cao nhất khi đang push nước hoa. Voucher 20% = catalyst mạnh nhất phiên.<div class="lc-stats"><div><div class="ls-l">Đóng góp GMV</div><div class="ls-v" style="color:var(--gn)">648M (50%)</div></div><div><div class="ls-l">AOV</div><div class="ls-v" style="color:var(--am)">~970K</div></div></div></div></div>
+    <div class="lc"><div class="lc-n">04</div><div class="lc-t">GPM cuối phiên cao nhất: 7,396đ</div><div class="lc-b">Lúc 00:35 — GPM <strong>7,396đ</strong> trong khi Mega avg chỉ ~5K. Traffic còn lại toàn high-intent thuần. Kéo thêm 60 phút BAU host → harvest thêm 20–30M với CIR tốt hơn.<div class="lc-stats"><div><div class="ls-l">GPM 00:35</div><div class="ls-v" style="color:var(--gn)">7,396đ</div></div><div><div class="ls-l">CTOR 00:35</div><div class="ls-v" style="color:var(--gn)">7.54%</div></div></div></div></div>
+    <div class="lc"><div class="lc-n">05</div><div class="lc-t">Gamification → AOV 800K+</div><div class="lc-b">Minigame "1 phân vàng" lúc 19:05 đẩy AOV trên <strong>800K</strong> — GPM session 3 đạt ~15,300đ, ngang BAU tốt nhất. FOMO tác động trực tiếp lên cả AOV và CTOR.<div class="lc-stats"><div><div class="ls-l">GPM Session 3</div><div class="ls-v" style="color:var(--gn)">~15,300đ</div></div><div><div class="ls-l">AOV</div><div class="ls-v" style="color:var(--gn)">800K+</div></div></div></div></div>
+    <div class="lc"><div class="lc-n">06</div><div class="lc-t">Checklist Mega Live tiếp theo</div><div class="lc-b"><strong>D-1:</strong> Video Teasing + script Double-Host<br><strong>T-2h:</strong> Voucher 20% loaded · GPM BAU target >15K<br><strong>Mega:</strong> Flash deal mỗi 20 phút · Monitor GPM mỗi 30 phút<br><strong>Post:</strong> BAU host thêm 60 phút harvest high-intent<div class="lc-stats"><div><div class="ls-l">GPM BAU target</div><div class="ls-v" style="color:var(--gn)">&gt;15K</div></div><div><div class="ls-l">GPM Mega target</div><div class="ls-v" style="color:var(--am)">&gt;6K</div></div><div><div class="ls-l">GMV target</div><div class="ls-v" style="color:#3b82f6">&gt;1.5B</div></div></div></div></div>
+  </div>
+</div>
+
+<script>
+const DATA=[{t:"10:05",s:"S1",gmv:10650140,imp:37530,views:1257,ctr:.484,ctor:.0186,err:.035,aov:887512,note:"Mở phiên — tỷ lệ đặt hàng thấp ban đầu"},{t:"10:35",s:"S1",gmv:38849774,imp:61779,views:1826,ctr:.556,ctor:.06,err:.029,aov:681575,note:""},{t:"11:05",s:"S1",gmv:23751410,imp:81605,views:2297,ctr:.5,ctor:.0363,err:.028,aov:579303,note:"CTR 50% — kỷ lục cao nhất"},{t:"11:35",s:"S1",gmv:31997140,imp:131776,views:2890,ctr:.492,ctor:.0451,err:.022,aov:516083,note:""},{t:"12:05",s:"S1",gmv:30528746,imp:102473,views:2599,ctr:.509,ctor:.0465,err:.030,aov:565347,note:""},{t:"12:35",s:"S1",gmv:19892150,imp:42289,views:1681,ctr:.418,ctor:.0454,err:.040,aov:621630,note:"CPM tăng 27%"},{t:"13:05",s:"S1",gmv:13235620,imp:33437,views:1370,ctr:.445,ctor:.0343,err:.041,aov:661781,note:""},{t:"13:35",s:"S1",gmv:13218540,imp:45176,views:1146,ctr:.37,ctor:.0576,err:.028,aov:629454,note:""},{t:"14:05",s:"S2",gmv:12715610,imp:50997,views:1088,ctr:.363,ctor:.0544,err:.023,aov:669243,note:"Voucher 20% Nước hoa topup — AOV bắt đầu tăng"},{t:"14:35",s:"S2",gmv:19184280,imp:31190,views:1201,ctr:.407,ctor:.0692,err:.039,aov:661527,note:""},{t:"15:05",s:"S2",gmv:9599350,imp:42699,views:998,ctr:.394,ctor:.035,err:.024,aov:685668,note:""},{t:"15:35",s:"S2",gmv:11354970,imp:40643,views:1031,ctr:.368,ctor:.033,err:.026,aov:811069,note:"Host xen kẽ SKU cao/thấp"},{t:"16:05",s:"S2",gmv:14728140,imp:41848,views:1130,ctr:.395,ctor:.0517,err:.027,aov:775165,note:""},{t:"16:35",s:"S2",gmv:12716640,imp:50979,views:1154,ctr:.34,ctor:.0441,err:.023,aov:748038,note:"21 chai nước hoa/giờ từ 14h–16:30"},{t:"17:05",s:"S3",gmv:10377560,imp:49296,views:1435,ctr:.347,ctor:.023,err:.030,aov:943415,note:"Hoàng Việt vào — traffic tăng"},{t:"17:35",s:"S3",gmv:11899890,imp:42431,views:1750,ctr:.325,ctor:.0389,err:.041,aov:743743,note:"Full USP nước hoa + Minigame"},{t:"18:05",s:"S3",gmv:19236350,imp:55217,views:1624,ctr:.332,ctor:.0644,err:.032,aov:663322,note:""},{t:"18:35",s:"S3",gmv:11037010,imp:60620,views:1650,ctr:.371,ctor:.0253,err:.029,aov:689813,note:""},{t:"19:05",s:"S3",gmv:25745820,imp:46089,views:1684,ctr:.309,ctor:.0596,err:.037,aov:830510,note:"Minigame 1 phân vàng — AOV liên tục trên 800K"},{t:"19:35",s:"S3",gmv:18976850,imp:44544,views:1877,ctr:.298,ctor:.0459,err:.042,aov:862584,note:""},{t:"20:05",s:"M",gmv:27112881,imp:94651,views:5633,ctr:.351,ctor:.0197,err:.057,aov:564852,note:"Anh Kim + Thuý Ngân lên — ERR 7.6%"},{t:"20:35",s:"M",gmv:54315110,imp:183340,views:13991,ctr:.411,ctor:.0206,err:.076,aov:493774,note:""},{t:"21:05",s:"M",gmv:176467206,imp:398913,views:30909,ctr:.366,ctor:.0228,err:.079,aov:673539,note:"Hồ Ngọc Hà xuất hiện — CTOR 2%, mood chưa bán hàng"},{t:"21:35",s:"M",gmv:161095116,imp:429494,views:32385,ctr:.377,ctor:.023,err:.088,aov:607906,note:"Push sale nước hoa liên tục, ERR 8.8%"},{t:"22:05",s:"M",gmv:119591904,imp:232412,views:29408,ctr:.373,ctor:.0274,err:.129,aov:334991,note:"ERR đỉnh 12% nhưng CTOR 2.74% — Flash deal Dual Blusher"},{t:"22:35",s:"M",gmv:181507611,imp:430151,views:34664,ctr:.334,ctor:.0273,err:.099,aov:674749,note:"Combo Iconic+Dual → CTOR 3.91% — combo hiệu quả nhất Mega"},{t:"23:05",s:"M",gmv:133119174,imp:327741,views:22468,ctr:.413,ctor:.0209,err:.083,aov:752086,note:"Đẩy Combo Love MOI"},{t:"23:35",s:"M",gmv:34677156,imp:118066,views:9633,ctr:.295,ctor:.0238,err:.080,aov:559309,note:"Traffic giảm"},{t:"00:05",s:"M",gmv:35737220,imp:106168,views:5917,ctr:.364,ctor:.0502,err:.056,aov:330900,note:""},{t:"00:35",s:"M",gmv:4065770,imp:14537,views:550,ctr:.279,ctor:.0754,err:.038,aov:406577,note:"CTOR 7.54% — high-intent cuối phiên, GPM 7,396đ"}];
+
+// Pre-compute GPM baselines from data
+const BAU_DATA=DATA.filter(d=>d.s!=="M");
+const MEGA_DATA=DATA.filter(d=>d.s==="M");
+const BAU_GPM_AVG=Math.round(BAU_DATA.reduce((s,d)=>s+(d.gmv/d.views*1000),0)/BAU_DATA.length);
+const MEGA_GPM_AVG=Math.round(MEGA_DATA.reduce((s,d)=>s+(d.gmv/d.views*1000),0)/MEGA_DATA.length);
+
+const SC={S1:"#3b82f6",S2:"#8b5cf6",S3:"#ffbe0b",M:"#fe2c55"};
+const BENCH={
+  bau:{imp:1092618,err:2.9,ctr:41,ctor:4.1,aov:671000,budget:30000000,gpm:BAU_GPM_AVG},
+  mega:{imp:2335473,err:7.95,ctr:37.5,ctor:4.12,aov:670000,budget:101524923,gpm:MEGA_GPM_AVG}
+};
+let sType="bau",SS={imp:1092618,err:2.9,ctr:41,ctor:4.1,aov:671000,budget:30000000};
+
+function fM(n){if(!n||isNaN(n)||!isFinite(n))return"—";if(n>=1e9)return(n/1e9).toFixed(2)+"B";if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(0)+"K";return n.toFixed(0);}
+function fFull(n){if(!n||isNaN(n)||!isFinite(n))return"—";return Math.round(n).toLocaleString("vi-VN");} // số đầy đủ không rút gọn
+function fK(n){return(n&&isFinite(n))?(n/1000).toFixed(0)+"K":"—";}
+function fN(n){return n?Math.round(n).toLocaleString("vi-VN"):"—";}
+function g(id){return parseFloat(document.getElementById(id)?.value)||0;}
+function calcGMV(imp,err,ctr,ctor,aov){return imp*(err/100)*(ctr/100)*(ctor/100)*aov;}
+function calcGPMViews(gmv,views){return views>0?Math.round(gmv/views*1000):0;}   // GPM theo dõi: GMV/Views×1000
+function calcGPMImp(gmv,imp){return imp>0?Math.round(gmv/imp*1000):0;}            // GPM hiển thị: GMV/Impressions×1000
+
+function setSess(t,btn){
+  sType=t;
+  document.querySelectorAll(".sbtn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  const b=BENCH[t],lbl=t==="bau"?"BAU":"Mega";
+  document.getElementById("b-imp").textContent=lbl+": "+fM(b.imp);
+  document.getElementById("b-err").textContent=lbl+": "+b.err+"%";
+  document.getElementById("b-ctr").textContent=lbl+": "+b.ctr+"%";
+  document.getElementById("b-ctor").textContent=lbl+": "+b.ctor+"%";
+  document.getElementById("b-aov").textContent=lbl+": "+fK(b.aov);
+  document.getElementById("gpm-bench").textContent=fN(b.gpm)+"đ";
+  document.getElementById("gpm-bench-note").textContent="GPM theo dõi: ~"+fN(b.gpm)+"đ  ·  BAU avg 02.03";
+}
+
+function onInp(f){
+  const b=BENCH[sType];
+  const v={imp:g("i-imp"),err:g("i-err"),ctr:g("i-ctr"),ctor:g("i-ctor"),aov:g("i-aov")};
+  if(!v[f])return;
+  const r=v[f]/b[f];
+  const el=document.getElementById("s-"+f);
+  if(el)el.style.background=r>=.9?"#2dce89":r>=.7?"#ffbe0b":"#fe2c55";
+}
+
+function aovC(v){return v>=600000?"#2dce89":v>=500000?"#ffbe0b":"#fe2c55";}
+function aovCls(v){return v>=600000?"good":v>=500000?"warn":"bad";}
+function aovR(v){return Math.min(v/600000,1.5);}
+
+function updateCIRZone(cir){
+  ["cz1","cz2","cz3","cz4"].forEach(id=>document.getElementById(id).classList.remove("active-zone"));
+  const pct=cir*100;
+  if(pct<8)document.getElementById("cz1").classList.add("active-zone");
+  else if(pct<12)document.getElementById("cz2").classList.add("active-zone");
+  else if(pct<15)document.getElementById("cz3").classList.add("active-zone");
+  else document.getElementById("cz4").classList.add("active-zone");
+}
+
+function buildSliders(imp,err,ctr,ctor,aov,budget,b){
+  SS={imp,err,ctr,ctor,aov,budget};
+  const cfg=[
+    {k:"imp",lbl:"Impressions",min:200000,max:20000000,step:100000,fmt:v=>fM(v)},
+    {k:"err",lbl:"ERR",min:.3,max:18,step:.1,fmt:v=>parseFloat(v).toFixed(1)+"%"},
+    {k:"ctr",lbl:"Live CTR",min:10,max:60,step:.5,fmt:v=>parseFloat(v).toFixed(1)+"%"},
+    {k:"ctor",lbl:"CTOR",min:.3,max:9,step:.05,fmt:v=>parseFloat(v).toFixed(2)+"%"},
+    {k:"aov",lbl:"AOV",min:100000,max:1200000,step:10000,fmt:v=>fK(parseFloat(v))},
+  ];
+  document.getElementById("sliders").innerHTML=cfg.map(c=>{
+    const val=SS[c.k];
+    const ratio=c.k==="aov"?aovR(val):val/(b[c.k]||1);
+    const grad=c.k==="aov"?aovC(val):ratio>=.9?"#2dce89":ratio>=.7?"#ffbe0b":"#fe2c55";
+    const vc=c.k==="aov"?aovCls(val):ratio>=.9?"good":ratio>=.7?"warn":"bad";
+    const pct=Math.min(100,ratio*100).toFixed(0);
+    return'<div class="sl-row">'
+      +'<div class="sl-head"><div class="sl-name">'+c.lbl+'</div><div class="sl-val '+vc+'" id="sv-'+c.k+'">'+c.fmt(val)+'</div></div>'
+      +'<input type="range" min="'+c.min+'" max="'+c.max+'" step="'+c.step+'" value="'+val+'" '
+      +'style="background:linear-gradient(to right,'+grad+' '+pct+'%,var(--bd) '+pct+'%)" '
+      +'id="sl-'+c.k+'" oninput="onSlide(\''+c.k+'\',this)">'
+      +'</div>';
+  }).join("");
+  updateSim();
+}
+
+function onSlide(k,el){
+  SS[k]=parseFloat(el.value);
+  const b=BENCH[sType];
+  const fmts={imp:v=>fM(v),err:v=>v.toFixed(1)+"%",ctr:v=>v.toFixed(1)+"%",ctor:v=>v.toFixed(2)+"%",aov:v=>fK(v)};
+  const ratio=k==="aov"?aovR(SS[k]):SS[k]/(b[k]||1);
+  const grad=k==="aov"?aovC(SS[k]):ratio>=.9?"#2dce89":ratio>=.7?"#ffbe0b":"#fe2c55";
+  const vc=k==="aov"?aovCls(SS[k]):ratio>=.9?"good":ratio>=.7?"warn":"bad";
+  const pct=Math.min(100,ratio*100).toFixed(0);
+  const sv=document.getElementById("sv-"+k);
+  if(sv){sv.textContent=fmts[k](SS[k]);sv.className="sl-val "+vc;}
+  el.style.background="linear-gradient(to right,"+grad+" "+pct+"%,var(--bd) "+pct+"%)";
+  updateSim();
+}
+
+function updateSim(){
+  const{imp,err,ctr,ctor,aov,budget}=SS;
+  const b=BENCH[sType];
+  const gmv=calcGMV(imp,err,ctr,ctor,aov);
+  const cir=budget/gmv;
+  const viewsInput=g("i-views");
+  const views=viewsInput||0;
+  const gpmViews=calcGPMViews(gmv,views);
+  const gpmImp=calcGPMImp(gmv,imp);
+  const gpmImpBench=Math.round(BAU_DATA.reduce((s,d)=>s+(d.gmv/d.imp*1000),0)/BAU_DATA.length);
+  const benchGMV=calcGMV(b.imp,b.err,b.ctr,b.ctor,b.aov);
+  const pct=(gmv/benchGMV-1)*100;
+
+  const el=document.getElementById("sg");
+  if(!el)return;
+  el.textContent=fFull(gmv)+" VND";
+  el.classList.add("pop");
+  setTimeout(()=>el.classList.remove("pop"),200);
+  document.getElementById("smeta").textContent="CIR "+(isFinite(cir)?(cir*100).toFixed(1):"—")+"% · Budget "+fFull(budget)+" VND";
+
+  const vsEl=document.getElementById("svspct");
+  vsEl.textContent=(pct>=0?"+":"")+pct.toFixed(0)+"%";
+  vsEl.style.color=pct>=0?"#2dce89":"#fe2c55";
+
+  // GPM theo dõi
+  const benchGPMV=b.gpm||BAU_GPM_AVG;
+  const gVRatio=gpmViews/benchGPMV;
+  const gVC=gVRatio>=.8?"#2dce89":gVRatio>=.5?"#ffbe0b":"#fe2c55";
+  const gVEl=document.getElementById("gpm-views");
+  if(gVEl){
+    gVEl.textContent=gpmViews>0?fN(gpmViews)+"đ":"—";
+    gVEl.style.color=gpmViews>0?gVC:"var(--tx2)";
+    const nV=gpmViews>0
+      ?(gVRatio>=.8?"✓ Tốt — host & deal đang hiệu quả ("+fN(views)+" views)"
+       :gVRatio>=.5?"⚠ Trung bình — cải thiện CTOR hoặc AOV ("+fN(views)+" views)"
+       :"✗ Thấp — traffic low-intent hoặc deal yếu ("+fN(views)+" views)")
+      :"Nhập Views từ TikTok Analytics để tính";
+    document.getElementById("gpm-views-note").textContent=nV;
+    document.getElementById("gpm-views-note").style.color=gpmViews>0?gVC:"var(--tx3)";
+  }
+
+  // GPM hiển thị
+  const gIRatio=gpmImp/gpmImpBench;
+  const gIC=gIRatio>=.8?"#2dce89":gIRatio>=.5?"#ffbe0b":"#fe2c55";
+  const gIEl=document.getElementById("gpm-imp");
+  if(gIEl){
+    gIEl.textContent=fN(gpmImp)+"đ";
+    gIEl.style.color=gIC;
+    const nI=gIRatio>=.8?"✓ TikTok đang ưu tiên đề xuất live này"
+      :gIRatio>=.5?"⚠ Thuật toán trung bình — cần tăng ERR hoặc CTOR"
+      :"✗ TikTok giảm đề xuất — cải thiện ERR & tỷ lệ chốt đơn";
+    document.getElementById("gpm-imp-note").textContent=nI;
+    document.getElementById("gpm-imp-note").style.color=gIC;
+  }
+
+  // Benchmark card
+  const bEl=document.getElementById("gpm-bench");
+  if(bEl){
+    bEl.textContent=fN(benchGPMV)+"đ / "+fN(gpmImpBench)+"đ";
+    document.getElementById("gpm-bench-note").textContent="GPM theo dõi / GPM hiển thị — BAU avg 02.03";
+  }
+
+  // CIR zone
+  if(isFinite(cir))updateCIRZone(cir);
+
+  // mini bars
+  const keys=[
+    {k:"imp",v:imp,bv:b.imp,lbl:"IMP"},
+    {k:"err",v:err,bv:b.err,lbl:"ERR"},
+    {k:"ctr",v:ctr,bv:b.ctr,lbl:"CTR"},
+    {k:"ctor",v:ctor,bv:b.ctor,lbl:"CTOR"},
+    {k:"aov",v:aov,bv:null,lbl:"AOV"},
+  ];
+  document.getElementById("mbars").innerHTML=keys.map(m=>{
+    const r=m.k==="aov"?aovR(m.v):Math.min(m.v/(m.bv||1),1.5);
+    const h=Math.round(r*100);
+    const c=m.k==="aov"?aovC(m.v):r>=.9?"#2dce89":r>=.7?"#ffbe0b":"#fe2c55";
+    return'<div class="mbar" style="height:'+h+'%;background:'+c+'"><div class="mbar-lbl">'+m.lbl+'</div></div>';
+  }).join("");
+}
+
+function go(){
+  const b=BENCH[sType];
+  const imp=g("i-imp")||b.imp,err=g("i-err")||b.err,ctr=g("i-ctr")||b.ctr,ctor=g("i-ctor")||b.ctor,aov=g("i-aov")||b.aov,budget=g("i-budget")||b.budget;
+  const viewsInput=g("i-views");
+  const views=viewsInput||0; // chỉ dùng views thực tế từ TikTok Analytics
+  const viewsSrc=views>0?"thực tế":"—";
+  const gmvA=calcGMV(imp,err,ctr,ctor,aov),cir=budget/gmvA;
+  const gpm=calcGPMViews(gmvA,views);
+  const gpmI=calcGPMImp(gmvA,imp);
+  const gmvFix=calcGMV(imp,err,ctr,b.ctor,aov);
+  const gmvFull=calcGMV(imp,err,ctr,b.ctor,Math.max(aov,b.aov)); // fix CTOR+AOV về bench, giữ Imp/ERR/CTR thực tế
+
+  // BOTTLENECK — weighted by controllability
+  // Urgency = GMV gain × controllability_weight
+  const CW={ctor:1.0,aov:.8,ctr:.7,err:.3,imp:.1};
+  const metrics=[
+    {name:"CTOR",full:"CTOR (Tỷ lệ chốt đơn)",v:ctor,bv:b.ctor,u:"%",ctrl:"Cao — fix được ngay trong phiên",desc:"Deal strength, voucher, push sale script của host",cw:CW.ctor},
+    {name:"ERR",full:"ERR (Tỷ lệ vào live)",v:err,bv:b.err,u:"%",ctrl:"Thấp — không fix được trong phiên",desc:"Hook opening, concept, video teasing, Celeb",cw:CW.err},
+    {name:"AOV",full:"AOV (Giá trị đơn hàng)",v:aov/1000,bv:600,u:"K",ctrl:"Trung bình — fix trong 30 phút",desc:"SKU mix, combo, upsell — ngưỡng: 400K ok · 500K tốt · 600K+ perfect",cw:CW.aov},
+    {name:"IMP",full:"Impressions (Lượt hiển thị)",v:imp/1e6,bv:b.imp/1e6,u:"M",ctrl:"Rất thấp — không fix được trong phiên",desc:"Ngân sách ads, CPM thị trường, ROI Target",cw:CW.imp},
+    {name:"CTR",full:"CTR (Click vào sản phẩm)",v:ctr,bv:b.ctr,u:"%",ctrl:"Trung bình — fix trong 30 phút",desc:"Cách host demo sản phẩm, CTA, visual",cw:CW.ctr},
+  ];
+  metrics.forEach(m=>{
+    m.ratio=m.v/m.bv;
+    m.rawGain=gmvA*(1/m.ratio-1);
+    m.urgency=m.rawGain*m.cw; // weighted score
+  });
+  metrics.sort((a,x)=>x.urgency-a.urgency);
+  const top=metrics[0],crits=metrics.filter(m=>m.ratio<.7).length;
+
+  // GPM verdict
+  const benchGPM=b.gpm||BAU_GPM_AVG;
+  const gpmRatio=gpm/benchGPM;
+  const gpmVerdict=gpm>0?(gpmRatio>=.8?" · GPM tốt ("+fN(gpm)+"đ)":gpmRatio>=.5?" · GPM trung bình ("+fN(gpm)+"đ — cần cải thiện CTOR)":" · GPM thấp ("+fN(gpm)+"đ — traffic low-intent)"):"";
+
+  let vc="warn",vf="⚠ Cần tối ưu",vt,vb;
+  if(cir<.12&&ctor>b.ctor*.85){vc="good";vf="✓ Phiên đang tốt";vt="GMV "+fFull(gmvA)+" · CIR "+(cir*100).toFixed(1)+"%"+gpmVerdict;vb="Bottleneck: "+top.full+" — fix thêm sẽ unlock +"+fM(top.rawGain)+" VND.";}
+  else if(crits>=2){vc="bad";vf="✗ Cần hành động ngay";vt=crits+" chỉ số dưới benchmark"+gpmVerdict;vb=top.full+": "+top.v.toFixed(1)+top.u+" vs bench "+top.bv+top.u+". Fix ngay = +"+fM(top.rawGain)+" GMV (urgency score "+top.urgency.toFixed(0)+")";}
+  else{vt=top.full+" là bottleneck ưu tiên cao nhất"+gpmVerdict;vb="GMV "+fFull(gmvA)+". Fix "+top.full+" về benchmark = +"+fM(top.rawGain)+" VND (impact score "+top.urgency.toFixed(0)+").";}
+
+  document.getElementById("vcard").className="verdict "+vc;
+  document.getElementById("vf").textContent=vf;
+  document.getElementById("vt").textContent=vt;
+  document.getElementById("vb").textContent=vb;
+
+  buildSliders(imp,err,ctr,ctor,aov,budget,b);
+
+  // Scenarios
+  document.getElementById("sc1").textContent=fFull(gmvA);
+  document.getElementById("sc1d").textContent="CIR "+(cir*100).toFixed(1)+"% · GPM hiển thị: "+fN(gpmI)+"đ"+(views>0?" · GPM theo dõi: "+fN(gpm)+"đ":"");
+  document.getElementById("sc2").textContent=fFull(gmvFix);
+  const d2=gmvFix-gmvA;
+  document.getElementById("sc2d").textContent=d2>0?"+"+fM(d2)+" (+"+((gmvFix/gmvA-1)*100).toFixed(0)+"%)":"CTOR đã đạt bench";
+  document.getElementById("sc3").textContent=fFull(gmvFull);
+  const d3=gmvFull-gmvA;
+  document.getElementById("sc3d").textContent=d3>0?"+"+fFull(Math.round(d3))+"đ (+"+((gmvFull/gmvA-1)*100).toFixed(0)+"%)":"Đã đạt";
+
+  // Bottleneck list
+  document.getElementById("bnlist").innerHTML=(()=>{
+    const maxU=Math.max(1,...metrics.map(m=>Math.abs(m.urgency)));
+    return metrics.map((m,i)=>{
+      const ic=m.ratio<.7?"bad":m.ratio<.9?"warn":"ok";
+      const cls="bn"+(i===0?" top":"");
+      const barPct=Math.max(5,Math.round(Math.abs(m.urgency)/maxU*100));
+      const barC=m.ratio<.7?"#fe2c55":m.ratio<.9?"#ffbe0b":"#2dce89";
+      const ctrlTag=m.cw>=.9?"Fix được ngay":m.cw>=.7?"Fix trong 30 phút":m.cw>=.3?"Khó fix trong phiên":"Không fix được trong phiên";
+      const gainTxt=m.ratio>=1?"✓ Đang tốt hơn benchmark":"+"+fFull(Math.round(m.rawGain))+"đ nếu fix";
+      return'<div class="'+cls+'">'
+        +'<div class="bn-n">'+((i+1))+'</div>'
+        +'<div style="min-width:0">'
+          +'<div class="bn-name">'+m.full+'</div>'
+          +'<div class="bn-desc">'+m.desc+'</div>'
+          +'<div style="margin-top:6px;display:flex;align-items:center;gap:8px">'
+            +'<div style="flex:1;height:4px;background:#333;border-radius:2px"><div style="height:100%;width:'+barPct+'%;background:'+barC+';border-radius:2px;transition:width .4s"></div></div>'
+            +'<span style="font-size:10px;color:#666;white-space:nowrap">'+ctrlTag+'</span>'
+          +'</div>'
+        +'</div>'
+        +'<div class="tag '+ic+'">'+gainTxt+'</div>'
+        +'</div>';
+    }).join("");
+  })();
+
+  // Actions — dùng urgency logic
+  const acts=[];
+  const ctorMetric=metrics.find(m=>m.name==="CTOR");
+  const errMetric=metrics.find(m=>m.name==="ERR");
+
+  if(ctor<b.ctor*.85){
+    acts.push({lvl:"critical",flag:"Ưu tiên ngay — fix được trong phiên",title:"Fix CTOR: "+ctor.toFixed(2)+"% → "+b.ctor+"%",body:"CTOR thấp hơn benchmark "+((1-ctor/b.ctor)*100).toFixed(0)+"% — đây là leaky bucket lớn nhất có thể fix ngay.<br>• <strong>Flash deal 10 phút</strong> — tạo urgency tức thì<br>• <strong>Nhấn mạnh voucher/quà</strong> đi kèm SKU chủ lực<br>• Host <strong>call-to-action trực tiếp</strong>, không nói lan man<br>• Đổi SKU sang <strong>Dual Blusher</strong> nếu traffic giải trí cao"});
+  } else if(ctor>=b.ctor*1.5){
+    acts.push({lvl:"ok",flag:"CTOR xuất sắc — duy trì",title:"CTOR "+ctor.toFixed(2)+"% — gấp "+((ctor/b.ctor).toFixed(1))+"× benchmark",body:"CTOR đang rất tốt — host và deal đang hoạt động hiệu quả.<br>• <strong>Giữ nguyên kịch bản</strong> đang chạy, không thay đổi<br>• Cân nhắc <strong>tăng AOV</strong> bằng cách upsell combo cao hơn<br>• Đây là thời điểm tốt để <strong>push Hero SKU</strong> giá cao"});
+  }
+  if(aov<500000)acts.push({lvl:"critical",flag:"Ưu tiên cao — fix trong 30 phút",title:"Tăng AOV: "+fK(aov)+" → 500K+",body:"AOV dưới 500K kéo GMV xuống đáng kể.<br>• <strong>Push combo cao AOV</strong> (Nước hoa, Set son, Bộ đôi sữa tắm)<br>• Upsell: <strong>\"Thêm X để có thêm...\"</strong><br>• Tạm dừng push đơn lẻ SKU dưới 200K trong giờ vàng"});
+  if(gpm>0&&gpm<benchGPM*.5)acts.push({lvl:"critical",flag:"GPM cảnh báo — traffic low-intent",title:"GPM "+fN(gpm)+"đ < 50% baseline ("+fN(benchGPM)+"đ)",body:"GPM thấp = traffic đông nhưng không chốt đơn.<br>• <strong>Đây là signal của traffic \"giải trí\"</strong> (Celeb/Minigame) — bình thường trong Mega<br>• Cần kịch bản chốt đơn mạnh hơn: Flash sale ngắn, đếm ngược<br>• Nếu là BAU mà GPM thấp → <strong>review SKU đang push</strong>, AOV quá cao hoặc deal yếu"});
+  if(err<b.err*.8)acts.push({lvl:"warn",flag:"Cần cải thiện — khó fix trong phiên",title:"ERR "+err.toFixed(1)+"% — traffic thấp",body:"ERR thấp hơn benchmark "+((1-err/b.err)*100).toFixed(0)+"% — phần lớn phụ thuộc ads đã chạy.<br>• Không thể fix nhanh trong phiên<br>• Ghi chú để <strong>review ROI Target và budget</strong> cho phiên sau<br>• Trong phiên: tăng năng lượng host, pin comment tease deal"});
+  if(cir>.15)acts.push({lvl:"warn",flag:"CIR nguy hiểm — dừng scale",title:"CIR "+(cir*100).toFixed(1)+"% > 15% — cần hành động",body:"CIR vượt ngưỡng an toàn.<br>• <strong>Không tăng budget ads</strong> thêm trong phiên này<br>• Review SKU mix — đang bán quá nhiều sản phẩm margin thấp<br>• Tập trung push Hero SKU có AOV cao hơn<br>• Xem xét <strong>giảm budget 20–30%</strong> nếu CTOR không cải thiện trong 30 phút"});
+  if(acts.length===0)acts.push({lvl:"ok",flag:"On Track — duy trì",title:"Phiên đang tốt · GPM "+(gpm>0?fN(gpm)+"đ":"chưa tính"),body:"Tất cả chỉ số ≥85% benchmark và CIR an toàn.<br>• <strong>Thêm Minigame</strong> để giữ ERR và AOV<br>• <strong>Test combo mới</strong> để kéo AOV thêm 10%<br>• Check lại sau <strong>30 phút tiếp theo</strong>"});
+
+  document.getElementById("actgrid").innerHTML=acts.map(a=>'<div class="ac '+a.lvl+'"><div class="ac-flag">'+a.flag+'</div><div class="ac-title">'+a.title+'</div><div class="ac-body">'+a.body+'</div></div>').join("");
+  document.getElementById("empty").style.display="none";
+  document.getElementById("res").classList.add("show");
+  document.getElementById("res").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+// CHARTS
+Chart.defaults.color="#555";Chart.defaults.borderColor="#333";Chart.defaults.font.family="Inter,sans-serif";Chart.defaults.font.size=11;
+const GR={color:"rgba(51,51,51,.8)"};
+const TIP={backgroundColor:"#1a1a1a",borderColor:"#444",borderWidth:1,titleColor:"#fff",bodyColor:"#a0a0a0",padding:10};
+const LB=DATA.map(d=>d.t);
+
+// Chart 1: GMV + ERR
+new Chart(document.getElementById("cGMV"),{data:{labels:LB,datasets:[{type:"bar",data:DATA.map(d=>+(d.gmv/1e6).toFixed(1)),backgroundColor:DATA.map(d=>SC[d.s]+"cc"),borderRadius:3,yAxisID:"y",order:2},{type:"line",label:"ERR%",data:DATA.map(d=>+(d.err*100).toFixed(1)),borderColor:"#ffbe0b",borderWidth:2.5,pointRadius:0,tension:.3,yAxisID:"y1",order:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TIP},scales:{x:{grid:GR,ticks:{maxRotation:45}},y:{grid:GR,title:{display:true,text:"M VND",color:"#555"}},y1:{position:"right",grid:{drawOnChartArea:false},title:{display:true,text:"ERR%",color:"#ffbe0b"}}}}});
+
+// Chart 2: Watch GPM
+const GPM_DATA=DATA.map(d=>Math.round(d.gmv/d.views*1000));
+new Chart(document.getElementById("cGPM"),{data:{labels:LB,datasets:[{type:"line",label:"Watch GPM",data:GPM_DATA,borderColor:DATA.map(d=>SC[d.s]),backgroundColor:"transparent",borderWidth:2.5,tension:.3,pointBackgroundColor:DATA.map(d=>SC[d.s]),pointRadius:4,segment:{borderColor:ctx=>SC[DATA[ctx.p0DataIndex]?.s]||"#fff"}},{type:"line",label:"BAU avg",data:DATA.map(()=>BAU_GPM_AVG),borderColor:"rgba(45,206,137,.4)",borderWidth:1,borderDash:[6,4],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{...TIP,callbacks:{label:ctx=>"GPM: "+ctx.parsed.y.toLocaleString("vi-VN")+"đ"}}},scales:{x:{grid:GR,ticks:{maxRotation:45}},y:{grid:GR,title:{display:true,text:"VND/1000 views",color:"#555"}}}}});
+
+// Chart 3: CTOR + CTR
+new Chart(document.getElementById("cCTOR"),{data:{labels:LB,datasets:[{type:"line",data:DATA.map(d=>+(d.ctor*100).toFixed(2)),borderColor:"#2dce89",backgroundColor:"rgba(45,206,137,.06)",fill:true,borderWidth:2.5,tension:.3,pointBackgroundColor:DATA.map(d=>d.ctor>=.04?"#2dce89":d.ctor>=.025?"#ffbe0b":"#fe2c55"),pointRadius:3.5},{type:"line",data:DATA.map(d=>+(d.ctr*100).toFixed(1)),borderColor:"#ffbe0b",borderWidth:1.5,borderDash:[4,3],tension:.3,pointRadius:0},{type:"line",data:DATA.map(()=>4.1),borderColor:"rgba(254,44,85,.35)",borderWidth:1,borderDash:[6,4],pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:TIP},scales:{x:{grid:GR,ticks:{maxRotation:45}},y:{grid:GR,suggestedMax:10}}}});
+
+document.getElementById("evts").innerHTML=DATA.filter(d=>d.note).map(d=>{
+  const hi=d.note.includes("CTR 50%")||d.note.includes("Minigame")||d.note.includes("ERR đỉnh")||d.note.includes("Voucher")||d.note.includes("Combo")||d.note.includes("7.54")||d.note.includes("GPM");
+  return'<div class="ev'+(hi?" hi":"")+'"><div class="ev-t" style="color:'+SC[d.s]+'">'+d.t+'</div><div class="ev-tx">'+d.note+'</div></div>';
+}).join("");
+
+function sw(n,btn){
+  document.querySelectorAll(".hn").forEach(h=>h.classList.remove("active"));
+  if(btn)btn.classList.add("active");
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.getElementById("tab-"+n).classList.add("active");
+}
+function setMode(m,btn){
+  document.querySelectorAll(".mbtn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  const bar=document.getElementById("mbar");
+  if(m==="warroom"){
+    bar.className="mbar warroom";
+    document.getElementById("mbadge").textContent="War Room Mode";
+    document.getElementById("mtitle").textContent="Đang live — nhập số thực tế từ TikTok Analytics mỗi 30 phút";
+    document.getElementById("mdesc").textContent="Dashboard phân tích bottleneck ngay · Theo dõi GPM để biết traffic đang chất lượng không · CIR Zone cảnh báo khi ngân sách nguy hiểm";
+    document.getElementById("msteps").innerHTML='<div class="sp">① Mở TikTok Live Analytics</div><div class="sp">② Copy số vào form</div><div class="sp">③ Thêm Views để tính GPM</div><div class="sp">④ Làm theo Action Plan</div>';
+  } else {
+    bar.className="mbar analyze";
+    document.getElementById("mbadge").textContent="Analyze Mode";
+    document.getElementById("mtitle").textContent="Lập kế hoạch trước phiên — nhập target, mô phỏng kịch bản GMV";
+    document.getElementById("mdesc").textContent="Kéo slider để hỏi ngược: \"Cần CTOR bao nhiêu để đạt 1.5B?\" · Xác định điểm cần chuẩn bị trước khi live";
+    document.getElementById("msteps").innerHTML='<div class="sp">① Chọn BAU / Mega</div><div class="sp">② Nhập target chỉ số</div><div class="sp">③ Kéo slider mô phỏng</div><div class="sp">④ Đọc Action Plan</div>';
+  }
+}
+</script>
+</body>
+</html>
